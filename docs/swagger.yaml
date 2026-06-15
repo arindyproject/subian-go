@@ -1,0 +1,1595 @@
+basePath: /api/v1
+definitions:
+  dto.AssignDirectPermissionRequest:
+    properties:
+      is_granted:
+        description: true = grant, false = deny
+        type: boolean
+      permission_id:
+        type: integer
+    required:
+    - permission_id
+    type: object
+  dto.AssignPermissionsRequest:
+    properties:
+      permission_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - permission_ids
+    type: object
+  dto.AssignRolesRequest:
+    properties:
+      role_ids:
+        items:
+          type: integer
+        minItems: 1
+        type: array
+    required:
+    - role_ids
+    type: object
+  dto.ChangePasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        description: Validasi min length dipindah ke custom validator
+        type: string
+      old_password:
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    - old_password
+    type: object
+  dto.CreatePermissionRequest:
+    properties:
+      action:
+        maxLength: 100
+        minLength: 2
+        type: string
+      description:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      resource:
+        maxLength: 100
+        minLength: 2
+        type: string
+    required:
+    - action
+    - display_name
+    - name
+    - resource
+    type: object
+  dto.CreateRoleRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 255
+        minLength: 3
+        type: string
+      name:
+        maxLength: 100
+        minLength: 3
+        type: string
+    required:
+    - display_name
+    - name
+    type: object
+  dto.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      is_active:
+        type: boolean
+      is_staff:
+        type: boolean
+      is_superadmin:
+        type: boolean
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      password:
+        description: Validasi min length dipindah ke custom validator
+        type: string
+      username:
+        maxLength: 150
+        minLength: 3
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - username
+    type: object
+  dto.DeleteUserRequest:
+    properties:
+      reason:
+        maxLength: 500
+        type: string
+    required:
+    - reason
+    type: object
+  dto.ForgotPasswordRequest:
+    properties:
+      identifier:
+        description: email atau username
+        type: string
+    required:
+    - identifier
+    type: object
+  dto.LoginRequest:
+    properties:
+      identifier:
+        description: username atau email
+        type: string
+      password:
+        type: string
+    required:
+    - identifier
+    - password
+    type: object
+  dto.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.PermissionResponse:
+    properties:
+      action:
+        type: string
+      description:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      resource:
+        type: string
+    type: object
+  dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  dto.RegisterResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_verified:
+        type: boolean
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.ResetPasswordRequest:
+    properties:
+      confirm_password:
+        type: string
+      new_password:
+        type: string
+      token:
+        type: string
+    required:
+    - confirm_password
+    - new_password
+    - token
+    type: object
+  dto.RoleResponse:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: integer
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/dto.PermissionResponse'
+        type: array
+    type: object
+  dto.RoleSimpleResponse:
+    properties:
+      description:
+        type: string
+      display_name:
+        type: string
+      id:
+        type: integer
+      is_system:
+        type: boolean
+      name:
+        type: string
+    type: object
+  dto.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        description: detik
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        description: Bearer
+        type: string
+      user:
+        $ref: '#/definitions/dto.UserResponse'
+    type: object
+  dto.UpdatePermissionRequest:
+    properties:
+      description:
+        maxLength: 500
+        type: string
+      display_name:
+        maxLength: 255
+        minLength: 3
+        type: string
+    type: object
+  dto.UpdateSettingsRequest:
+    properties:
+      settings:
+        items:
+          $ref: '#/definitions/models.UserSetting'
+        type: array
+    required:
+    - settings
+    type: object
+  dto.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      name:
+        maxLength: 255
+        minLength: 1
+        type: string
+      username:
+        maxLength: 150
+        minLength: 3
+        type: string
+    type: object
+  dto.UserResponse:
+    properties:
+      created_at:
+        type: string
+      creator:
+        $ref: '#/definitions/models.UserCreator'
+      email:
+        type: string
+      histories:
+        items:
+          $ref: '#/definitions/models.LoginHistory'
+        type: array
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_staff:
+        type: boolean
+      is_superadmin:
+        type: boolean
+      is_verified:
+        type: boolean
+      last_login_at:
+        type: string
+      name:
+        type: string
+      password_changed_at:
+        type: string
+      permissions:
+        description: ← object lengkap, deduplicated
+        items:
+          $ref: '#/definitions/dto.PermissionResponse'
+        type: array
+      photo:
+        type: string
+      photo_thumbnail:
+        type: string
+      roles:
+        description: ← tanpa permissions
+        items:
+          $ref: '#/definitions/dto.RoleSimpleResponse'
+        type: array
+      settings:
+        items:
+          $ref: '#/definitions/models.UserSetting'
+        type: array
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  dto.UserSimpleResponse:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      is_staff:
+        type: boolean
+      is_superadmin:
+        type: boolean
+      is_verified:
+        type: boolean
+      name:
+        type: string
+      photo_thumbnail:
+        type: string
+      roles:
+        items:
+          $ref: '#/definitions/dto.RoleSimpleResponse'
+        type: array
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  models.LoginHistory:
+    properties:
+      created_at:
+        type: string
+      failure_reason:
+        type: string
+      id:
+        type: integer
+      identifier:
+        type: string
+      ip_address:
+        type: string
+      status:
+        description: success | failed
+        type: string
+      user_agent:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.UserCreator:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      username:
+        type: string
+    type: object
+  models.UserSetting:
+    properties:
+      description:
+        type: string
+      key:
+        type: string
+      type:
+        type: string
+      value: {}
+    type: object
+  response.MyGoResponse:
+    description: Standard JSON response
+    properties:
+      data: {}
+      errors: {}
+      message:
+        type: string
+      status:
+        type: boolean
+    type: object
+host: localhost:1323
+info:
+  contact:
+    email: support@subian.id
+    name: subian Support
+  description: REST API untuk subian — sistem manajemen informasi
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: subian API V1
+  version: "1.0"
+paths:
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Mengirim email reset password. Selalu response 200 untuk keamanan.
+      parameters:
+      - description: Forgot Password Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ForgotPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      summary: Lupa password
+      tags:
+      - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login menggunakan username atau email dan password
+      parameters:
+      - description: Login Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TokenResponse'
+              type: object
+      summary: Login user
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Memblacklist refresh token sehingga tidak bisa dipakai lagi. Access
+        token tetap valid hingga expired (simpan di client dan hapus saat logout).
+      parameters:
+      - description: Logout Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout dari device saat ini
+      tags:
+      - Auth
+  /auth/logout-all:
+    post:
+      description: Memblacklist semua refresh token user sehingga semua sesi aktif
+        dihentikan
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      security:
+      - BearerAuth: []
+      summary: Logout dari semua device
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Memperbarui access token menggunakan refresh token
+      parameters:
+      - description: Refresh Token Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.TokenResponse'
+              type: object
+      summary: Refresh access token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Mendaftarkan akun baru
+      parameters:
+      - description: Register Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RegisterResponse'
+              type: object
+      summary: Register user baru
+      tags:
+      - Auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Mereset password menggunakan token dari email
+      parameters:
+      - description: Reset Password Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ResetPasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      summary: Reset password
+      tags:
+      - Auth
+  /rbac/permissions:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of permissions
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10, max: 100)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PermissionResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List permissions
+      tags:
+      - RBAC
+    post:
+      consumes:
+      - application/json
+      description: Create a new permission with name, display name, description, resource,
+        and action
+      parameters:
+      - description: Permission data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PermissionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new permission
+      tags:
+      - RBAC
+  /rbac/permissions/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a permission by its ID
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission berhasil dihapus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a permission
+      tags:
+      - RBAC
+    get:
+      consumes:
+      - application/json
+      description: Get a permission by its ID
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PermissionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get permission by ID
+      tags:
+      - RBAC
+    put:
+      consumes:
+      - application/json
+      description: Update a permission's display name, description, resource, or action
+      parameters:
+      - description: Permission ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated permission data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdatePermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.PermissionResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update a permission
+      tags:
+      - RBAC
+  /rbac/roles:
+    get:
+      consumes:
+      - application/json
+      description: Get a paginated list of roles
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Page size (default: 10, max: 100)'
+        in: query
+        name: page_size
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: List roles
+      tags:
+      - RBAC
+    post:
+      consumes:
+      - application/json
+      description: Create a new role with the provided details
+      parameters:
+      - description: Role details
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new role
+      tags:
+      - RBAC
+  /rbac/roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role berhasil dihapus
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a role
+      tags:
+      - RBAC
+    get:
+      consumes:
+      - application/json
+      description: Get a role by its ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.RoleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get role by ID
+      tags:
+      - RBAC
+  /rbac/roles/{id}/permissions:
+    delete:
+      consumes:
+      - application/json
+      description: Revoke one or more permissions from a role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission IDs to revoke
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignPermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission berhasil dicabut dari role
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Revoke permissions from a role
+      tags:
+      - RBAC
+    post:
+      consumes:
+      - application/json
+      description: Assign one or more permissions to a role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission IDs to assign
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignPermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission berhasil ditambahkan ke role
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Assign permissions to a role
+      tags:
+      - RBAC
+    put:
+      consumes:
+      - application/json
+      description: Sync permissions of a role (revoke all existing and assign new
+        ones)
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Permission IDs to sync
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignPermissionsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Permission role berhasil disinkronkan
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Sync permissions of a role
+      tags:
+      - RBAC
+  /rbac/users/{user_id}/permissions:
+    get:
+      consumes:
+      - application/json
+      description: Get all permissions of a user, including those inherited from roles
+        and directly assigned
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.PermissionResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get all permissions of a user
+      tags:
+      - RBAC
+    post:
+      consumes:
+      - application/json
+      description: Assign a direct permission to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Permission to assign
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignDirectPermissionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Direct permission berhasil ditetapkan
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Assign direct permission to a user
+      tags:
+      - RBAC
+  /rbac/users/{user_id}/roles:
+    delete:
+      consumes:
+      - application/json
+      description: Revoke one or more roles from a user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Role IDs to revoke
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role berhasil dicabut dari user
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Revoke roles from a user
+      tags:
+      - RBAC
+    get:
+      consumes:
+      - application/json
+      description: Get all roles assigned to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.RoleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user roles
+      tags:
+      - RBAC
+    post:
+      consumes:
+      - application/json
+      description: Assign one or more roles to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Role IDs to assign
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role berhasil ditambahkan ke user
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Assign roles to a user
+      tags:
+      - RBAC
+    put:
+      consumes:
+      - application/json
+      description: Sync roles of a user (revoke all existing and assign new ones)
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: integer
+      - description: Role IDs to sync
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AssignRolesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role user berhasil disinkronkan
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  type: string
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Sync roles of a user
+      tags:
+      - RBAC
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of users
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by username (partial match)
+        in: query
+        name: username
+        type: string
+      - description: Filter by email (partial match)
+        in: query
+        name: email
+        type: string
+      - description: Filter by superadmin status
+        in: query
+        name: is_superadmin
+        type: boolean
+      - description: Filter by active status
+        in: query
+        name: is_active
+        type: boolean
+      - description: Filter by staff status
+        in: query
+        name: is_staff
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserSimpleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get list of users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create New user
+      parameters:
+      - description: Login Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserSimpleResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Create user
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Delete User Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.DeleteUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete user
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Get user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update User Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Update user
+      tags:
+      - Users
+  /users/{id}/change-password:
+    put:
+      consumes:
+      - application/json
+      description: Change password of a user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Change Password Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.ChangePasswordRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - Users
+  /users/{id}/photo:
+    delete:
+      consumes:
+      - application/json
+      description: Delete user photo by :id (set to default avatar)
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Delete user photo
+      tags:
+      - Users
+    put:
+      consumes:
+      - multipart/form-data
+      description: Upload or update user photo by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Photo file (jpg, jpeg, png, webp, heic)
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Upload user photo
+      tags:
+      - Users
+  /users/{id}/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password of a user by :id to default password
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      security:
+      - BearerAuth: []
+      summary: Reset password
+      tags:
+      - Users
+  /users/{id}/settings:
+    get:
+      consumes:
+      - application/json
+      description: Get settings of a user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/models.UserSetting'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user settings
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update settings of a user by :id
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Update Settings Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateSettingsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.MyGoResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user settings
+      tags:
+      - Users
+  /users/deleted:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of soft-deleted users
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size
+        in: query
+        name: page_size
+        type: integer
+      - description: Filter by name (partial match)
+        in: query
+        name: name
+        type: string
+      - description: Filter by username (partial match)
+        in: query
+        name: username
+        type: string
+      - description: Filter by email (partial match)
+        in: query
+        name: email
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/dto.UserSimpleResponse'
+                  type: array
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get list of deleted users
+      tags:
+      - Users
+  /users/username/{username}:
+    get:
+      consumes:
+      - application/json
+      description: Get user by :username
+      parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/response.MyGoResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/dto.UserResponse'
+              type: object
+      security:
+      - BearerAuth: []
+      summary: Get user
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: 'Masukkan token dengan format: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

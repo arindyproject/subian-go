@@ -1,0 +1,6 @@
+api
+bin/
+uploads/
+logs/
+config/.env.dev
+config/.env.prod
