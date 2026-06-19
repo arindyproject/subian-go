@@ -5,24 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"subian_go/internal/modules/rbac/contracts"
 	"subian_go/internal/modules/rbac/dto"
 	"subian_go/internal/modules/rbac/models"
 
-	userContracts "subian_go/internal/modules/users/contracts"
 	appErrors "subian_go/internal/shared/errors"
 
 	"gorm.io/gorm"
 )
-
-type rbacService struct {
-	rbacRepo contracts.RBACRepository
-	userRepo userContracts.Repository
-}
-
-func NewRBACService(rbacRepo contracts.RBACRepository, userRepo userContracts.Repository) contracts.RBACService {
-	return &rbacService{rbacRepo: rbacRepo, userRepo: userRepo}
-}
 
 // ─── Permission CRUD ───────────────────────────────────────────────────────────
 

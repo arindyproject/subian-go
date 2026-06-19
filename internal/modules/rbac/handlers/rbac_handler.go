@@ -4,32 +4,14 @@ import (
 	"net/http"
 	"strconv"
 
-	"subian_go/internal/modules/rbac/contracts"
 	"subian_go/internal/modules/rbac/dto"
 	"subian_go/internal/shared/response"
 	"subian_go/internal/shared/validator"
 
+	he "subian_go/internal/shared/httputil"
+
 	"github.com/labstack/echo/v5"
 )
-
-type RBACHandler struct {
-	service contracts.RBACService
-}
-
-func NewRBACHandler(service contracts.RBACService) *RBACHandler {
-	return &RBACHandler{service: service}
-}
-
-func parseID(c *echo.Context) (int64, error) {
-	return strconv.ParseInt(c.Param("id"), 10, 64)
-}
-
-func getActorID(c *echo.Context) *int64 {
-	if userID, ok := c.Get("userID").(int64); ok {
-		return &userID
-	}
-	return nil
-}
 
 // ─── Permission Handlers ───────────────────────────────────────────────────────
 // ListPermissions handles GET /permissions
@@ -83,7 +65,7 @@ func (h *RBACHandler) ListPermissions(c *echo.Context) error {
 //
 // UpdatePermission handles PUT /permissions/{id}
 func (h *RBACHandler) GetPermission(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -115,7 +97,7 @@ func (h *RBACHandler) CreatePermission(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	item, err := h.service.CreatePermission(&req, getActorID(c))
+	item, err := h.service.CreatePermission(&req, he.GetActorID(c))
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
@@ -136,7 +118,7 @@ func (h *RBACHandler) CreatePermission(c *echo.Context) error {
 //	@Success		200		{object}	response.MyGoResponse{data=dto.PermissionResponse}
 //	@Router			/rbac/permissions/{id} [put]
 func (h *RBACHandler) UpdatePermission(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -147,7 +129,7 @@ func (h *RBACHandler) UpdatePermission(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	item, err := h.service.UpdatePermission(id, &req, getActorID(c))
+	item, err := h.service.UpdatePermission(id, &req, he.GetActorID(c))
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
@@ -167,7 +149,7 @@ func (h *RBACHandler) UpdatePermission(c *echo.Context) error {
 //	@Success		200	{object}	response.MyGoResponse{data=string} "Permission berhasil dihapus"
 //	@Router			/rbac/permissions/{id} [delete]
 func (h *RBACHandler) DeletePermission(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -226,7 +208,7 @@ func (h *RBACHandler) ListRoles(c *echo.Context) error {
 //	@Success		200	{object}	response.MyGoResponse{data=dto.RoleResponse}
 //	@Router			/rbac/roles/{id} [get]
 func (h *RBACHandler) GetRole(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -258,7 +240,7 @@ func (h *RBACHandler) CreateRole(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	item, err := h.service.CreateRole(&req, getActorID(c))
+	item, err := h.service.CreateRole(&req, he.GetActorID(c))
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
@@ -277,7 +259,7 @@ func (h *RBACHandler) CreateRole(c *echo.Context) error {
 //	@Security		BearerAuth
 //	@Param			id		path	int							true	"Role ID"
 func (h *RBACHandler) UpdateRole(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -288,7 +270,7 @@ func (h *RBACHandler) UpdateRole(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	item, err := h.service.UpdateRole(id, &req, getActorID(c))
+	item, err := h.service.UpdateRole(id, &req, he.GetActorID(c))
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
@@ -308,7 +290,7 @@ func (h *RBACHandler) UpdateRole(c *echo.Context) error {
 //	@Success		200	{object}	response.MyGoResponse{data=string} "Role berhasil dihapus"
 //	@Router			/rbac/roles/{id} [delete]
 func (h *RBACHandler) DeleteRole(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -335,7 +317,7 @@ func (h *RBACHandler) DeleteRole(c *echo.Context) error {
 //	@Success		200		{object}	response.MyGoResponse{data=string} "Permission berhasil ditambahkan ke role"
 //	@Router			/rbac/roles/{id}/permissions [post]
 func (h *RBACHandler) AssignPermissionsToRole(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -366,7 +348,7 @@ func (h *RBACHandler) AssignPermissionsToRole(c *echo.Context) error {
 //	@Success		200		{object}	response.MyGoResponse{data=string} "Permission role berhasil disinkronkan"
 //	@Router			/rbac/roles/{id}/permissions [put]
 func (h *RBACHandler) SyncRolePermissions(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -394,7 +376,7 @@ func (h *RBACHandler) SyncRolePermissions(c *echo.Context) error {
 //	@Success		200		{object}	response.MyGoResponse{data=string} "Permission berhasil dicabut dari role"
 //	@Router			/rbac/roles/{id}/permissions [delete]
 func (h *RBACHandler) RevokePermissionsFromRole(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -468,7 +450,7 @@ func (h *RBACHandler) AssignRolesToUser(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	if err := h.service.AssignRolesToUser(userID, &req, getActorID(c)); err != nil {
+	if err := h.service.AssignRolesToUser(userID, &req, he.GetActorID(c)); err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
 	return response.Response(c, http.StatusOK, true, "Role berhasil ditambahkan ke user", nil, nil)
@@ -496,7 +478,7 @@ func (h *RBACHandler) SyncUserRoles(c *echo.Context) error {
 	if err := c.Bind(&req); err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "Request tidak valid", nil, nil)
 	}
-	if err := h.service.SyncUserRoles(userID, &req, getActorID(c)); err != nil {
+	if err := h.service.SyncUserRoles(userID, &req, he.GetActorID(c)); err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
 	return response.Response(c, http.StatusOK, true, "Role user berhasil disinkronkan", nil, nil)
@@ -582,7 +564,7 @@ func (h *RBACHandler) AssignDirectPermission(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	if err := h.service.AssignDirectPermission(userID, &req, getActorID(c)); err != nil {
+	if err := h.service.AssignDirectPermission(userID, &req, he.GetActorID(c)); err != nil {
 		return response.Response(c, http.StatusBadRequest, false, err.Error(), nil, nil)
 	}
 	return response.Response(c, http.StatusOK, true, "Direct permission berhasil ditetapkan", nil, nil)

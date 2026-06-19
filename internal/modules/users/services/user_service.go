@@ -10,191 +10,20 @@ import (
 	"time"
 
 	"subian_go/config"
-	authContracts "subian_go/internal/modules/auth/contracts"
-	rbacContracts "subian_go/internal/modules/rbac/contracts"
-	rbacDto "subian_go/internal/modules/rbac/dto"
-	rbacMiddlewares "subian_go/internal/modules/rbac/middlewares"
-	rbacModels "subian_go/internal/modules/rbac/models"
-	userContracts "subian_go/internal/modules/users/contracts"
 	"subian_go/internal/modules/users/dto"
 	"subian_go/internal/modules/users/models"
 
 	appErrors "subian_go/internal/shared/errors"
-	"subian_go/internal/shared/storage"
 
 	"golang.org/x/crypto/bcrypt"
+
+	he "subian_go/internal/shared/httputil"
 )
-
-// ─── Service ───────────────────────────────────────────────────────────────────
-
-type service struct {
-	repo           userContracts.Repository
-	rbacRepo       rbacContracts.RBACRepository
-	authRepo       authContracts.AuthRepository
-	storageService storage.ImageStorage
-}
-
-func NewUserService(
-	repo userContracts.Repository,
-	rbacRepo rbacContracts.RBACRepository,
-	authRepo authContracts.AuthRepository,
-	storageService storage.ImageStorage,
-) userContracts.Service {
-	return &service{
-		repo:           repo,
-		rbacRepo:       rbacRepo,
-		authRepo:       authRepo,
-		storageService: storageService,
-	}
-}
-
-// ─── Authorization Helpers ─────────────────────────────────────────────────────
-
-func (s *service) canCreateUser(actor userContracts.AuthContext) (bool, error) {
-	if actor.IsSuperadmin {
-		return true, nil
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersCreate); err != nil || has {
-		return has, err
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersManage); err != nil || has {
-		return has, err
-	}
-	return rbacMiddlewares.HasAnyRole(s.rbacRepo, actor.UserID, "admin", "superadmin", "hrd")
-}
-
-func (s *service) canUpdateUser(actor userContracts.AuthContext, targetUserID int64) (bool, error) {
-	if actor.IsSuperadmin {
-		return true, nil
-	}
-	if actor.UserID == targetUserID {
-		return true, nil
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersUpdate); err != nil || has {
-		return has, err
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersManage); err != nil || has {
-		return has, err
-	}
-	return rbacMiddlewares.HasAnyRole(s.rbacRepo, actor.UserID, "admin", "superadmin", "hrd")
-}
-
-func (s *service) canDeleteUser(actor userContracts.AuthContext) (bool, error) {
-	return actor.IsSuperadmin, nil
-}
-
-func (s *service) canReadUser(actor userContracts.AuthContext, targetUserID int64) (bool, error) {
-	if actor.IsSuperadmin {
-		return true, nil
-	}
-	if actor.UserID == targetUserID {
-		return true, nil
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersRead); err != nil || has {
-		return has, err
-	}
-	if has, err := rbacMiddlewares.HasPermission(s.rbacRepo, actor.UserID, rbacModels.PermUsersManage); err != nil || has {
-		return has, err
-	}
-	return false, nil
-}
-
-// ─── RBAC Data Builder ─────────────────────────────────────────────────────────
-// Letakkan di internal/modules/users/services/user_service.go
-// Ganti fungsi buildUserRBAC yang lama dengan ini
-
-// buildUserRBAC mengambil roles (tanpa permissions) dan permissions (object lengkap, deduplicated)
-func (s *service) buildUserRBAC(userID int64) ([]rbacDto.RoleSimpleResponse, []rbacDto.PermissionResponse) {
-	// 1. Ambil roles dari DB — tanpa preload permissions agar ringan
-	roles, err := s.rbacRepo.GetUserRoles(userID)
-	var roleSimple []rbacDto.RoleSimpleResponse
-	if err == nil {
-		roleSimple = rbacDto.ToRoleSimpleListResponse(roles)
-	} else {
-		roleSimple = []rbacDto.RoleSimpleResponse{}
-	}
-
-	// 2. Ambil semua permissions (dari role + direct) sebagai object lengkap
-	// Gunakan map untuk deduplication berdasarkan permission ID
-	permMap := make(map[int64]rbacDto.PermissionResponse)
-
-	// 2a. Permissions dari role
-	for _, role := range roles {
-		for _, p := range role.Permissions {
-			if _, exists := permMap[p.ID]; !exists {
-				permMap[p.ID] = *rbacDto.ToPermissionResponse(&p)
-			}
-		}
-	}
-
-	// 2b. Direct permissions yang di-grant — override/tambah ke map
-	directPerms, err := s.rbacRepo.GetUserDirectPermissions(userID)
-	if err == nil {
-		for _, up := range directPerms {
-			if !up.IsGranted {
-				// Direct deny — hapus dari map jika ada
-				delete(permMap, up.PermissionID)
-				continue
-			}
-			// Direct grant — tambah jika belum ada
-			if _, exists := permMap[up.PermissionID]; !exists {
-				perm, err := s.rbacRepo.GetPermissionByID(up.PermissionID)
-				if err == nil && perm != nil {
-					permMap[perm.ID] = *rbacDto.ToPermissionResponse(perm)
-				}
-			}
-		}
-	}
-
-	// 3. Convert map ke slice
-	permList := make([]rbacDto.PermissionResponse, 0, len(permMap))
-	for _, p := range permMap {
-		permList = append(permList, p)
-	}
-
-	return roleSimple, permList
-}
-
-func (s *service) buildUsersRBAC(userIDs []int64) map[int64][]rbacDto.RoleSimpleResponse {
-	userRolesMap := make(map[int64][]rbacDto.RoleSimpleResponse)
-	if len(userIDs) == 0 {
-		return userRolesMap
-	}
-
-	// Menggunakan method batch repository yang sudah ada
-	dbRolesMap, err := s.rbacRepo.GetUsersRoles(userIDs)
-	if err != nil {
-		return userRolesMap
-	}
-
-	// Konversi dari map[int64][]models.Role ke map[int64][]rbacDto.RoleSimpleResponse
-	for userID, roles := range dbRolesMap {
-		userRolesMap[userID] = rbacDto.ToRoleSimpleListResponse(roles)
-	}
-
-	return userRolesMap
-}
-
-// buildCreator mengambil data creator user
-func (s *service) buildCreator(createdBy *int64) *models.UserCreator {
-	if createdBy == nil {
-		return nil
-	}
-	creator, err := s.repo.GetByID(*createdBy)
-	if err != nil || creator == nil {
-		return nil
-	}
-	return &models.UserCreator{
-		ID:       creator.ID,
-		Username: creator.Username,
-		Name:     creator.Name,
-	}
-}
 
 // ─── CRUD ──────────────────────────────────────────────────────────────────────
 
 // CreateUser --------------------------------------------------------------------
-func (s *service) CreateUser(req *dto.CreateUserRequest, actor userContracts.AuthContext) (*dto.UserSimpleResponse, error) {
+func (s *service) CreateUser(req *dto.CreateUserRequest, actor he.AuthContext) (*dto.UserSimpleResponse, error) {
 	can, err := s.canCreateUser(actor)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -261,7 +90,7 @@ func (s *service) CreateUser(req *dto.CreateUserRequest, actor userContracts.Aut
 } // CreateUser ------------------------------------------------------------------
 
 // GetUserByID -------------------------------------------------------------------
-func (s *service) GetUserByID(id int64, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) GetUserByID(id int64, actor he.AuthContext) (*dto.UserResponse, error) {
 	can, err := s.canReadUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -294,7 +123,7 @@ func (s *service) GetUserByID(id int64, actor userContracts.AuthContext) (*dto.U
 } // GetUserByID -----------------------------------------------------------------
 
 // GetUserByUsername -------------------------------------------------------------
-func (s *service) GetUserByUsername(username string, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) GetUserByUsername(username string, actor he.AuthContext) (*dto.UserResponse, error) {
 
 	user, err := s.repo.GetByUsername(username)
 	if err != nil || user == nil {
@@ -320,7 +149,7 @@ func (s *service) GetUserByUsername(username string, actor userContracts.AuthCon
 } // GetUserByUsername -----------------------------------------------------------
 
 // GetUserByEmail ----------------------------------------------------------------
-func (s *service) GetUserByEmail(email string, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) GetUserByEmail(email string, actor he.AuthContext) (*dto.UserResponse, error) {
 	user, err := s.repo.GetByEmail(email)
 	if err != nil || user == nil {
 		return nil, appErrors.NotFound("user tidak ditemukan")
@@ -379,7 +208,7 @@ func (s *service) ListUsers(page, pageSize int, filter *dto.UserFilter) ([]dto.U
 } // ListUsers -------------------------------------------------------------------
 
 // UpdateUser --------------------------------------------------------------------
-func (s *service) UpdateUser(id int64, req *dto.UpdateUserRequest, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) UpdateUser(id int64, req *dto.UpdateUserRequest, actor he.AuthContext) (*dto.UserResponse, error) {
 	can, err := s.canUpdateUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -432,7 +261,7 @@ func (s *service) UpdateUser(id int64, req *dto.UpdateUserRequest, actor userCon
 } // UpdateUser ------------------------------------------------------------------
 
 // DeleteUser --------------------------------------------------------------------
-func (s *service) DeleteUser(id int64, reason string, actor userContracts.AuthContext) error {
+func (s *service) DeleteUser(id int64, reason string, actor he.AuthContext) error {
 	can, err := s.canDeleteUser(actor)
 	if err != nil {
 		return appErrors.Internal("gagal cek akses")
@@ -455,7 +284,7 @@ func (s *service) DeleteUser(id int64, reason string, actor userContracts.AuthCo
 } // DeleteUser ------------------------------------------------------------------
 
 // ListDeletedUsers --------------------------------------------------------------
-func (s *service) ListDeletedUsers(page, pageSize int, filter *dto.UserDeletedFilter, actor userContracts.AuthContext) ([]dto.UserDeletedResponse, int64, error) {
+func (s *service) ListDeletedUsers(page, pageSize int, filter *dto.UserDeletedFilter, actor he.AuthContext) ([]dto.UserDeletedResponse, int64, error) {
 	can, err := s.canDeleteUser(actor)
 	if err != nil {
 		return nil, 0, appErrors.Internal("gagal cek akses")
@@ -507,7 +336,7 @@ func (s *service) ListDeletedUsers(page, pageSize int, filter *dto.UserDeletedFi
 } // ListDeletedUsers ------------------------------------------------------------
 
 // ─── Settings ──────────────────────────────────────────────────────────────────
-func (s *service) GetSettings(id int64, actor userContracts.AuthContext) ([]models.UserSetting, error) {
+func (s *service) GetSettings(id int64, actor he.AuthContext) ([]models.UserSetting, error) {
 	can, err := s.canUpdateUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -519,7 +348,7 @@ func (s *service) GetSettings(id int64, actor userContracts.AuthContext) ([]mode
 	return s.repo.GetSettings(id)
 }
 
-func (s *service) UpdateSettings(id int64, req *dto.UpdateSettingsRequest, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) UpdateSettings(id int64, req *dto.UpdateSettingsRequest, actor he.AuthContext) (*dto.UserResponse, error) {
 	can, err := s.canUpdateUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -564,7 +393,7 @@ func (s *service) UpdateSettings(id int64, req *dto.UpdateSettingsRequest, actor
 } // ─── Settings ────────────────────────────────────────────────────────────────
 
 // ─── Password ──────────────────────────────────────────────────────────────────
-func (s *service) ChangePassword(id int64, req *dto.ChangePasswordRequest, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) ChangePassword(id int64, req *dto.ChangePasswordRequest, actor he.AuthContext) (*dto.UserResponse, error) {
 	if !actor.IsSuperadmin && actor.UserID != id {
 		return nil, appErrors.Wrap(http.StatusForbidden, "Akses ditolak. Hanya bisa mengubah password sendiri.", nil)
 	}
@@ -606,7 +435,7 @@ func (s *service) ChangePassword(id int64, req *dto.ChangePasswordRequest, actor
 } // ─── Password ────────────────────────────────────────────────────────────────
 
 // ─── Reset Password ────────────────────────────────────────────────────────────
-func (s *service) ResetPassword(id int64, actor userContracts.AuthContext) error {
+func (s *service) ResetPassword(id int64, actor he.AuthContext) error {
 	cfg := config.LoadConfig()
 
 	can, err := s.canDeleteUser(actor) // Cek akses superadmin
@@ -635,7 +464,7 @@ func (s *service) ResetPassword(id int64, actor userContracts.AuthContext) error
 }
 
 // ─── Upload Foto ───────────────────────────────────────────────────────────────
-func (s *service) UploadPhoto(id int64, filename string, reader io.Reader, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) UploadPhoto(id int64, filename string, reader io.Reader, actor he.AuthContext) (*dto.UserResponse, error) {
 	can, err := s.canUpdateUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -687,7 +516,7 @@ func (s *service) UploadPhoto(id int64, filename string, reader io.Reader, actor
 
 	// NYALAKAN NIL SAFETY CHECK UNTUK ACTOR
 	// Menghindari panic jika context actor dikirim kosong/nil dari handler
-	if actor != (userContracts.AuthContext{}) {
+	if actor != (he.AuthContext{}) {
 		userID := actor.UserID // Menggunakan getter jika interface, atau cek nil pointer jika struct
 		user.UpdatedBy = &userID
 	}
@@ -727,7 +556,7 @@ func (s *service) UploadPhoto(id int64, filename string, reader io.Reader, actor
 }
 
 // ─── Delete Photo ──────────────────────────────────────────────────────────────
-func (s *service) DeletePhoto(id int64, actor userContracts.AuthContext) (*dto.UserResponse, error) {
+func (s *service) DeletePhoto(id int64, actor he.AuthContext) (*dto.UserResponse, error) {
 	can, err := s.canUpdateUser(actor, id)
 	if err != nil {
 		return nil, appErrors.Internal("gagal cek akses")
@@ -754,7 +583,7 @@ func (s *service) DeletePhoto(id int64, actor userContracts.AuthContext) (*dto.U
 	user.Photo = nil
 	user.PhotoThumbnail = nil
 
-	if actor != (userContracts.AuthContext{}) {
+	if actor != (he.AuthContext{}) {
 		userID := actor.UserID
 		user.UpdatedBy = &userID
 	}

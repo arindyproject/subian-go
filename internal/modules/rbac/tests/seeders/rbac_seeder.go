@@ -102,6 +102,11 @@ func (s *RBACSeeder) seedPermissions() (map[string]*models.Permission, error) {
 		factories.MakeUserUpdatePermission("any"),
 		factories.MakeUserDeletePermission("any"),
 		factories.MakeUserAllPermission("any"),
+		//master
+		factories.MakeUserWritePermission("master"),
+		factories.MakeUserUpdatePermission("master"),
+		factories.MakeUserDeletePermission("master"),
+		factories.MakeUserAllPermission("master"),
 	}
 
 	result := make(map[string]*models.Permission)

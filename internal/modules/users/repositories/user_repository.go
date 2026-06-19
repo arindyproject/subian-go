@@ -34,7 +34,7 @@ func (r *repository) Create(user *models.User) error {
 // GetByID retrieves a user by ID
 func (r *repository) GetByID(id int64) (*models.User, error) {
 	var user models.User
-	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
+	if err := r.db.Where("id = ?", id).Where("deleted_at IS NULL").First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -47,7 +47,7 @@ func (r *repository) GetByID(id int64) (*models.User, error) {
 // GetByUsername retrieves a user by username
 func (r *repository) GetByUsername(username string) (*models.User, error) {
 	var user models.User
-	if err := r.db.Where("username = ?", username).First(&user).Error; err != nil {
+	if err := r.db.Where("username = ?", username).Where("deleted_at IS NULL").First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -59,7 +59,7 @@ func (r *repository) GetByUsername(username string) (*models.User, error) {
 // GetByEmail retrieves a user by email
 func (r *repository) GetByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Where("email = ?", email).Where("deleted_at IS NULL").First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

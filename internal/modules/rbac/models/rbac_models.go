@@ -120,4 +120,10 @@ const (
 	PermAnyUpdate = "any:update"
 	PermAnyDelete = "any:delete"
 	PermAnyManage = "any:manage"
+
+	// Master
+	PermMasterCreate = "master:create"
+	PermMasterUpdate = "master:update"
+	PermMasterDelete = "master:delete"
+	PermMasterManage = "master:manage"
 )

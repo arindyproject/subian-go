@@ -4,41 +4,16 @@ import (
 	"net/http"
 	"strconv"
 
-	rbacMiddlewares "subian_go/internal/modules/rbac/middlewares"
-	userContracts "subian_go/internal/modules/users/contracts"
 	"subian_go/internal/modules/users/dto"
 	"subian_go/internal/shared/response"
 	"subian_go/internal/shared/validator"
 
+	he "subian_go/internal/shared/httputil"
+
 	"github.com/labstack/echo/v5"
 )
 
-type Handler struct {
-	service userContracts.Service
-}
-
-func NewHandler(service userContracts.Service) *Handler {
-	return &Handler{service: service}
-}
-
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-
-func parseID(c *echo.Context) (int64, error) {
-	return strconv.ParseInt(c.Param("id"), 10, 64)
-}
-
-// buildAuthContext membuat AuthContext dari JWT claims di context
-func buildAuthContext(c *echo.Context) userContracts.AuthContext {
-	userID, _ := rbacMiddlewares.GetUserIDFromContext(c)
-	isSuperadmin := rbacMiddlewares.IsSuperadmin(c)
-	return userContracts.AuthContext{
-		UserID:       userID,
-		IsSuperadmin: isSuperadmin,
-	}
-}
-
 // ─── User CRUD ─────────────────────────────────────────────────────────────────────
-
 // ─── CreateUserHandler ─────────────────────────────────────────────────────────────
 // CreateUserHandler godoc
 //
@@ -62,7 +37,7 @@ func (h *Handler) CreateUserHandler(c *echo.Context) error {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	user, err := h.service.CreateUser(&req, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
@@ -88,12 +63,12 @@ func (h *Handler) CreateUserHandler(c *echo.Context) error {
 //
 // GetUserHandler handles GET /api/v1/users/:id
 func (h *Handler) GetUserHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 
 	user, err := h.service.GetUserByID(id, actor)
 
@@ -126,7 +101,7 @@ func (h *Handler) GetByUsernameHandler(c *echo.Context) error {
 		return response.Response(c, http.StatusBadRequest, false, "Username tidak boleh kosong", nil, nil)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 
 	user, err := h.service.GetUserByUsername(username, actor)
 	if err != nil {
@@ -233,7 +208,7 @@ func (h *Handler) ListUsersHandler(c *echo.Context) error {
 // - Punya permission "users:update" → boleh
 // - Punya role "hrd" → boleh
 func (h *Handler) UpdateUserHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -246,7 +221,7 @@ func (h *Handler) UpdateUserHandler(c *echo.Context) error {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	user, err := h.service.UpdateUser(id, &req, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
@@ -274,7 +249,7 @@ func (h *Handler) UpdateUserHandler(c *echo.Context) error {
 // DeleteUserHandler handles DELETE /api/v1/users/:id
 // Siapa yang bisa: superadmin
 func (h *Handler) DeleteUserHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -290,7 +265,7 @@ func (h *Handler) DeleteUserHandler(c *echo.Context) error {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 
 	// Kirim req.Reason ke service
 	if err := h.service.DeleteUser(id, req.Reason, actor); err != nil {
@@ -322,7 +297,7 @@ func (h *Handler) DeleteUserHandler(c *echo.Context) error {
 // ListDeletedUsersHandler handles GET /api/v1/users/deleted
 // Siapa yang bisa: superadmin
 func (h *Handler) ListDeletedUsersHandler(c *echo.Context) error {
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	page, pageSize := 1, 10
 	if p := c.QueryParam("page"); p != "" {
 		if v, err := strconv.Atoi(p); err == nil && v > 0 {
@@ -372,11 +347,11 @@ func (h *Handler) ListDeletedUsersHandler(c *echo.Context) error {
 // GetSettingsHandler handles GET /api/v1/users/:id/settings
 // Siapa yang bisa: diri sendiri atau superadmin
 func (h *Handler) GetSettingsHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	settings, err := h.service.GetSettings(id, actor)
 	if err != nil {
 		return response.Response(c, http.StatusInternalServerError, false, err.Error(), nil, nil)
@@ -400,7 +375,7 @@ func (h *Handler) GetSettingsHandler(c *echo.Context) error {
 // UpdateSettingsHandler handles PUT /api/v1/users/:id/settings
 // Siapa yang bisa: diri sendiri atau superadmin
 func (h *Handler) UpdateSettingsHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -411,7 +386,7 @@ func (h *Handler) UpdateSettingsHandler(c *echo.Context) error {
 	if errs := validator.Validate(req); errs != nil {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Validasi gagal", nil, errs)
 	}
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	user, err := h.service.UpdateSettings(id, &req, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
@@ -439,7 +414,7 @@ func (h *Handler) UpdateSettingsHandler(c *echo.Context) error {
 // GetChangePasswordHandler handles GET /api/v1/users/:id/change-password
 // Siapa yang bisa: diri sendiri atau superadmin
 func (h *Handler) ChangePasswordHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -456,7 +431,7 @@ func (h *Handler) ChangePasswordHandler(c *echo.Context) error {
 		return response.Response(c, http.StatusUnprocessableEntity, false, "Password tidak memenuhi kebijakan keamanan", nil, errs)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	user, err := h.service.ChangePassword(id, &req, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
@@ -482,11 +457,11 @@ func (h *Handler) ChangePasswordHandler(c *echo.Context) error {
 // ResetPasswordHandler handles POST /api/v1/users/:id/reset-password
 // Siapa yang bisa: superadmin
 func (h *Handler) ResetPasswordHandler(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	if err := h.service.ResetPassword(id, actor); err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
 			return response.Response(c, appErr.StatusCode(), false, err.Error(), nil, nil)
@@ -514,7 +489,7 @@ func (h *Handler) ResetPasswordHandler(c *echo.Context) error {
 // Siapa yang bisa: diri sendiri atau superadmin
 // PUT /users/:id/photo
 func (h *Handler) UploadPhoto(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
@@ -530,7 +505,7 @@ func (h *Handler) UploadPhoto(c *echo.Context) error {
 	}
 	defer src.Close()
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	result, err := h.service.UploadPhoto(id, file.Filename, src, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {
@@ -558,12 +533,12 @@ func (h *Handler) UploadPhoto(c *echo.Context) error {
 // DeletePhotoHandler handles DELETE /api/v1/users/:id/photo
 // Siapa yang bisa: diri sendiri atau superadmin
 func (h *Handler) DeletePhoto(c *echo.Context) error {
-	id, err := parseID(c)
+	id, err := he.ParseID(c)
 	if err != nil {
 		return response.Response(c, http.StatusBadRequest, false, "ID tidak valid", nil, nil)
 	}
 
-	actor := buildAuthContext(c)
+	actor := he.BuildAuthContext(c)
 	result, err := h.service.DeletePhoto(id, actor)
 	if err != nil {
 		if appErr, ok := err.(interface{ StatusCode() int }); ok {

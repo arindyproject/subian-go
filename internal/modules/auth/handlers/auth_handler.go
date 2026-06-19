@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	"subian_go/internal/modules/auth/contracts"
 	"subian_go/internal/modules/auth/dto"
 	authMiddlewares "subian_go/internal/modules/auth/middlewares"
 	"subian_go/internal/modules/auth/services"
@@ -12,17 +11,6 @@ import (
 
 	"github.com/labstack/echo/v5"
 )
-
-// ─── Init ──────────────────────────────────────────────────────────────────────
-// AuthHandler menangani HTTP request untuk auth
-type AuthHandler struct {
-	service contracts.AuthService
-}
-
-// NewAuthHandler membuat instance handler baru
-func NewAuthHandler(service contracts.AuthService) *AuthHandler {
-	return &AuthHandler{service: service}
-}
 
 // ─── End Init ──────────────────────────────────────────────────────────────────
 

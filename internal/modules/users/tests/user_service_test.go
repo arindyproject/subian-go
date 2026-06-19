@@ -19,6 +19,8 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
+
+	he "subian_go/internal/shared/httputil"
 )
 
 // ─── Suite ─────────────────────────────────────────────────────────────────────
@@ -46,8 +48,8 @@ type UserServiceTestSuite struct {
 	authRepo     *mocks.MockAuthRepository
 	imgStorage   *mocks.MockImageStorage
 	service      userContracts.Service
-	superActor   userContracts.AuthContext
-	regularActor userContracts.AuthContext
+	superActor   he.AuthContext
+	regularActor he.AuthContext
 }
 
 func (s *UserServiceTestSuite) SetupTest() {
@@ -56,8 +58,8 @@ func (s *UserServiceTestSuite) SetupTest() {
 	s.authRepo = new(mocks.MockAuthRepository)
 	s.imgStorage = new(mocks.MockImageStorage)
 	s.service = services.NewUserService(s.repo, s.rbacRepo, s.authRepo, s.imgStorage)
-	s.superActor = userContracts.AuthContext{UserID: 1, IsSuperadmin: true}
-	s.regularActor = userContracts.AuthContext{UserID: 2, IsSuperadmin: false}
+	s.superActor = he.AuthContext{UserID: 1, IsSuperadmin: true}
+	s.regularActor = he.AuthContext{UserID: 2, IsSuperadmin: false}
 }
 
 func (s *UserServiceTestSuite) TearDownTest() {
@@ -240,7 +242,7 @@ func (s *UserServiceTestSuite) TestGetUserByID_Success_Superadmin() {
 }
 
 func (s *UserServiceTestSuite) TestGetUserByID_Success_Self() {
-	actor := userContracts.AuthContext{UserID: 5, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 5, IsSuperadmin: false}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 5 })
 
 	s.repo.On("GetByID", int64(5)).Return(user, nil)
@@ -256,7 +258,7 @@ func (s *UserServiceTestSuite) TestGetUserByID_Success_Self() {
 
 func (s *UserServiceTestSuite) TestGetUserByID_LimitedView_NoPermission() {
 	// Actor lain tanpa permission — dapat data minimal (is_allow=false)
-	actor := userContracts.AuthContext{UserID: 2, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 2, IsSuperadmin: false}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 5 })
 
 	s.repo.On("GetByID", int64(5)).Return(user, nil)
@@ -357,7 +359,7 @@ func (s *UserServiceTestSuite) TestUpdateUser_Success_Superadmin() {
 }
 
 func (s *UserServiceTestSuite) TestUpdateUser_Success_Self() {
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 3 })
 	newName := "My Name"
 	req := &dto.UpdateUserRequest{Name: &newName}
@@ -373,7 +375,7 @@ func (s *UserServiceTestSuite) TestUpdateUser_Success_Self() {
 }
 
 func (s *UserServiceTestSuite) TestUpdateUser_Success_WithPermission() {
-	actor := userContracts.AuthContext{UserID: 2, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 2, IsSuperadmin: false}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 5 })
 	newName := "Updated via Permission"
 	req := &dto.UpdateUserRequest{Name: &newName}
@@ -454,7 +456,7 @@ func (s *UserServiceTestSuite) TestDeleteUser_Forbidden_NotSuperadmin() {
 }
 
 func (s *UserServiceTestSuite) TestDeleteUser_CannotDeleteSelf() {
-	selfActor := userContracts.AuthContext{UserID: 5, IsSuperadmin: true}
+	selfActor := he.AuthContext{UserID: 5, IsSuperadmin: true}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 5 })
 
 	s.repo.On("GetByID", int64(5)).Return(user, nil)
@@ -477,7 +479,7 @@ func (s *UserServiceTestSuite) TestDeleteUser_NotFound() {
 // ─── ChangePassword ───────────────────────────────────────────────────────────
 
 func (s *UserServiceTestSuite) TestChangePassword_Success_Self() {
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	hashed := mustHash("oldpassword123")
 	user := factories.MakeUser(func(u *models.User) {
 		u.ID = 3
@@ -525,7 +527,7 @@ func (s *UserServiceTestSuite) TestChangePassword_Success_Superadmin() {
 }
 
 func (s *UserServiceTestSuite) TestChangePassword_WrongOldPassword() {
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	hashed := mustHash("correctpassword")
 	user := factories.MakeUser(func(u *models.User) {
 		u.ID = 3
@@ -561,7 +563,7 @@ func (s *UserServiceTestSuite) TestChangePassword_Forbidden_OtherUser() {
 // ─── GetSettings ──────────────────────────────────────────────────────────────
 
 func (s *UserServiceTestSuite) TestGetSettings_Success_Self() {
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	settings := []models.UserSetting{
 		{Key: "is_dark_mode", Type: "boolean", Value: false},
 	}
@@ -588,7 +590,7 @@ func (s *UserServiceTestSuite) TestGetSettings_Forbidden() {
 // ─── UploadPhoto ──────────────────────────────────────────────────────────────
 
 func (s *UserServiceTestSuite) TestUploadPhoto_Success() {
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	user := factories.MakeUser(func(u *models.User) { u.ID = 3 })
 
 	mockFile := &mocks.MockMultipartFile{}
@@ -635,7 +637,7 @@ func (s *UserServiceTestSuite) TestUploadPhoto_DeletesOldPhoto() {
 	s.imgStorage.On("DeleteImageMultiple", oldPhoto, oldThumb).Return(nil).Maybe()
 	s.stubFullUserDetail(user)
 
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	result, err := s.service.UploadPhoto(3, "photo.jpg", mockFile, actor)
 
 	s.NoError(err)
@@ -657,7 +659,7 @@ func (s *UserServiceTestSuite) TestUploadPhoto_RollbackOnDBError() {
 	// Harus hapus file baru karena DB gagal
 	s.imgStorage.On("DeleteImageMultiple", origURL, thumbURL).Return(nil)
 
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 	result, err := s.service.UploadPhoto(3, "photo.jpg", mockFile, actor)
 
 	s.Nil(result)
@@ -684,7 +686,7 @@ func (s *UserServiceTestSuite) TestDeletePhoto_Success() {
 	user.ID = 3
 	oldPhoto := *user.Photo
 	oldThumb := *user.PhotoThumbnail
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 
 	s.repo.On("GetByID", int64(3)).Return(user, nil)
 	s.repo.On("Update", user).Return(nil)
@@ -706,7 +708,7 @@ func (s *UserServiceTestSuite) TestDeletePhoto_NoPhoto_StillSuccess() {
 		u.Photo = nil
 		u.PhotoThumbnail = nil
 	})
-	actor := userContracts.AuthContext{UserID: 3, IsSuperadmin: false}
+	actor := he.AuthContext{UserID: 3, IsSuperadmin: false}
 
 	s.repo.On("GetByID", int64(3)).Return(user, nil)
 	s.repo.On("Update", user).Return(nil)
